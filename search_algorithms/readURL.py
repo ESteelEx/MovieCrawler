@@ -4,6 +4,7 @@ class URLmanager:
     def __init__(self, command):
         pass
 
+    #-------------------------------------------------------------------------------------------------------------------
     def readURL(self, URL):
         """
         reads the given URL and returns content
@@ -12,33 +13,102 @@ class URLmanager:
         try:
             f = urllib2.urlopen(req)
             URLcontent = f.read()
-        except:
-            raise
+        except urllib2.HTTPError, err:
+            if err.code == 403:
+                URLcontent = ''
+                print 'We have no access"'
+
         return URLcontent
 
+    #-------------------------------------------------------------------------------------------------------------------
     def linkfilter(self, content):
         pos = 0
         contentPos = 0
         searchStr = 'href='
-        i = 0
+        linkdb = []
         while 1:
             pos = content[contentPos + len(searchStr):].find(searchStr)
             if pos != -1:
                 contentPos = contentPos + pos + len(searchStr)
+                for i in range(len(content[contentPos:])):
+                    if content[contentPos + len(searchStr) + 1 + i] == '"':
+                        # print content[contentPos:contentPos + len(searchStr) + 2 + i]
+                        linkdb.append([(content[contentPos:contentPos + len(searchStr) + 2 + i])])
+                        break
+            else:
+                break
+        return linkdb
 
-            contentTrimmed = content[contentPos + len(searchStr):]
+    #-------------------------------------------------------------------------------------------------------------------
+    def killunique(self, linkdb, threshold=0.8):
+        from difflib import SequenceMatcher
 
-            print pos
-            print contentPos
-            i += 1
+        killpos = []
+        for i in range(len(linkdb)):
+            for ii in range(len(linkdb)):
+                ratioMatch = SequenceMatcher(None, str(linkdb[i]), str(linkdb[ii])).ratio()
+                if ratioMatch > threshold and not i == ii:
+                    linkdb[ii] = ''
 
+        while 1:
+            j = 0
+            for i in linkdb:
+                if not str(i):
+                    del linkdb[j]
+                    break
+                j += 1
+            if j == len(linkdb):
+                break
+
+        return linkdb
+
+    #-------------------------------------------------------------------------------------------------------------------
+    def readsublinks(self, linkdb):
+        sublinkdb = []
+        u = URLmanager('read')
+        for i in linkdb:
+            link = str(i)
+            posStart = link.find('"')
+            posEnd = link[posStart+1].find('"')
+            try:
+                sublinkdb.append(u.readURL('http://' + link[posStart+1:posEnd-1]))
+            except:
+                print 'http://' + link[posStart+1:posEnd-2]
+
+        return sublinkdb
+
+    #-------------------------------------------------------------------------------------------------------------------
+    def linkfixer(self, linkdb):
+
+        for i in linkdb:
+            #check for http:// at beginning
+            if not str(i).find('http'):
+                #check string at start point
+                for ii in range(len(i)):
+                    print i[ii:]
+
+        return linkdb
+
+#-----------------------------------------------------------------------------------------------------------------------
 def main():
 
-    URL = 'http://www.movie4k.to'
+    # URL = 'http://www.movie4k.to'
+    # URL = 'https://instagram.com/kateupton/'
+    # URL = 'https://www.google.de/search?q=Kate+Upton&safe=off&biw=1920&bih=1099&source=lnms&tbm=isch&sa=X&ved=0CAYQ_AUoAWoVChMI9LPNiuKDyQIVgYssCh2DDw-K'
+    # URL = 'http://www.google.de/imgres?imgurl=http%3A%2F%2Fwww.returnofkings.com%2Fwp-content%2Fuploads%2F2015%2F06%2FKate-Upton-St.-Joseph-MI-667x1001.jpg&imgrefurl=http%3A%2F%2Fwww.returnofkings.com%2F65318%2Fwhy-dont-feminists-call-kate-upton-a-misogynist&h=1001&w=667&tbnid=GytYRw3v8MC_QM%3A&docid=db2EG6gLY8Q7aM&ei=e8pAVoXHPIahsAH5wZWICg&tbm=isch&iact=rc&uact=3&dur=463&page=1&start=0&ndsp=59&ved=0CEIQrQMwBGoVChMIxfCpjeKDyQIVhhAsCh35YAWh'
+    # URL = 'https://de.wikipedia.org/wiki/Kate_Upton'
+    URL = 'http://www.dominikpietsch.de'
+    # URL = 'http://www.google.de/imgres?imgurl=http%3A%2F%2Fwww.returnofkings.com%2Fwp-content%2Fuploads%2F2015%2F06%2FKate-Upton-St.-Joseph-MI-667x1001.jpg&imgrefurl=http%3A%2F%2Fwww.returnofkings.com%2F65318%2Fwhy-dont-feminists-call-kate-upton-a-misogynist&h=1001&w=667&tbnid=GytYRw3v8MC_QM%3A&docid=db2EG6gLY8Q7aM&ei=e8pAVoXHPIahsAH5wZWICg&tbm=isch&iact=rc&uact=3&dur=463&page=1&start=0&ndsp=59&ved=0CEIQrQMwBGoVChMIxfCpjeKDyQIVhhAsCh35YAWh'
 
     u = URLmanager('read')
     URLcontent = u.readURL(URL)
-    u.linkfilter(URLcontent)
+    linkdb = u.linkfilter(URLcontent)
+    linkdb = u.killunique(linkdb, 1)
+    linkdb = u.linkfixer(linkdb)
+
+    sublinkdb = u.readsublinks(linkdb)
+
+    print sublinkdb
 
 if __name__ == '__main__':
     main()
