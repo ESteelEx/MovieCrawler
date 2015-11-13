@@ -71,21 +71,25 @@ class URLmanager:
             posStart = link.find('"')
             posEnd = link[posStart+1].find('"')
             try:
-                sublinkdb.append(u.readURL('http://' + link[posStart+1:posEnd-1]))
+                sublinkdb.append(u.readURL(link[posStart+1:posEnd-1]))
             except:
-                print 'http://' + link[posStart+1:posEnd-2]
+                print link[posStart+1:posEnd-2]
 
         return sublinkdb
 
     #-------------------------------------------------------------------------------------------------------------------
     def linkfixer(self, linkdb):
+        from urlparse import urlparse
 
         for i in linkdb:
+            # print urlparse(str(i))
             #check for http:// at beginning
             if not str(i).find('http'):
                 #check string at start point
-                for ii in range(len(i)):
-                    print i[ii:]
+                if str(i).find('/') == 0:
+                    if str(i).find('/') == 1:
+                         print 'http' + str(i)
+                         print 'http' + str(i)
 
         return linkdb
 
@@ -104,11 +108,14 @@ def main():
     URLcontent = u.readURL(URL)
     linkdb = u.linkfilter(URLcontent)
     linkdb = u.killunique(linkdb, 1)
+
     linkdb = u.linkfixer(linkdb)
 
-    sublinkdb = u.readsublinks(linkdb)
+    print linkdb
 
-    print sublinkdb
+    # sublinkdb = u.readsublinks(linkdb)
+
+    # print sublinkdb
 
 if __name__ == '__main__':
     main()
